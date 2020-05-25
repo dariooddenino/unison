@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+
+jobs:
+  build:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest] # [ubuntu-latest, macOS-latest]
+        ghc: ["8.6.5"]
+    steps:
+      - uses: actions/checkout@v2
+        name: checkout
+      - uses: actions/cache@v1
+        name: cache ~/.stack
+        with:
+          path: ~/.stack
+          key: x-${{ runner.os }}-${{ matrix.ghc }}-stack-${{ hashFiles('stack.yaml') }}
+          restore-keys: x-${{ runner.os }}-${{ matrix.ghc }}-stack-
+      - uses: actions/cache@v1
+        name: cache .stack-work
+        with:
+          path: .stack-work
+          key: x-${{ runner.os }}-${{ matrix.ghc }}-stack-work-${{ github.sha }}
+          restore-keys: x-${{ runner.os }}-${{ matrix.ghc }}-stack-work-
+      - uses: actions/setup-haskell@v1.1
+        name: setup
+        with:
+          ghc-version: ${{ matrix.ghc }}
+          enable-stack: true
+      - name: build dependencies
+        run: stack --no-terminal --system-ghc build --fast --only-dependencies --no-run-tests --test
+      - name: build
+        run: stack --no-terminal --system-ghc build --fast --no-run-tests --test
+      # - name: tests
+      #   run: stack --no-terminal --system-ghc exec tests
+      # - name: transcripts
+      #   run: stack --no-terminal exec transcripts
